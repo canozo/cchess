@@ -10,7 +10,7 @@ def weight_variable(shape):
     :return: initialized weight variable
     """
     initer = tf.truncated_normal_initializer(stddev=0.01)
-    return tf.get_variable('W',
+    return tf.compat.v1.get_variable('W',
                            dtype=tf.float32,
                            shape=shape,
                            initializer=initer)
@@ -24,6 +24,6 @@ def bias_variable(shape):
     :return: initialized bias variable
     """
     initial = tf.constant(0., shape=shape, dtype=tf.float32)
-    return tf.get_variable('b',
+    return tf.compat.v1.get_variable('b',
                            dtype=tf.float32,
                            initializer=initial)
