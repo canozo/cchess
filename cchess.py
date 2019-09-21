@@ -487,6 +487,6 @@ class Chess:
             if self.chessboard[i][j] == '':
                 res.append(0)
             else:
-                res.append(piece_num[self.chessboard[i][j]])
-                # res.append(1)
+                # res.append(piece_num[self.chessboard[i][j]])
+                res.append(1)
         return res

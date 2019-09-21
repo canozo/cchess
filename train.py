@@ -52,7 +52,7 @@ def train(args):
     # tf
     data = np.array(train_games)
     labels = np.array(train_labels)
-    cosacosa(data, labels)
+    cosacosa(data[:900], labels[:900], data[100:], labels[100:], tests, tests_labels)
 
 def add_game(game):
     count = 0
@@ -84,14 +84,20 @@ def add_game(game):
         train_games.append(the_board)
         train_labels.append(temp)
 
-def cosacosa(x_train, y_train):
+def cosacosa(x_train, y_train, x_valid, y_valid, x_test, y_test):
     img_h = img_w = 8
     img_size_flat = img_h * img_w
     n_classes = 6
 
+    print(f'x_train.shape: {x_train.shape}')
+    print(f'y_train.shape: {y_train.shape}')
+
+    print(f'x_test.shape: {x_test.shape}')
+    print(f'y_test.shape: {y_test.shape}')
+
     # Hyper-parameters
-    learning_rate = 0.01  # The optimization initial learning rate
-    epochs = 10  # Total number of training epochs
+    learning_rate = 0.001  # The optimization initial learning rate
+    epochs = 20  # Total number of training epochs
     batch_size = 100  # Training batch size
     display_freq = 100  # Frequency of displaying the training results
 
@@ -148,16 +154,25 @@ def cosacosa(x_train, y_train):
                     print("iter {0:3d}:\t Loss={1:.2f},\tTraining Accuracy={2:.01%}".
                         format(iteration, loss_batch, acc_batch))
 
+            # Run validation after every epoch
+            feed_dict_valid = {x: x_valid[:1000], y: y_valid[:1000]}
+            loss_valid, acc_valid = sess.run([loss, accuracy], feed_dict=feed_dict_valid)
+            print('---------------------------------------------------------')
+            print("Epoch: {0}, validation loss: {1:.2f}, validation accuracy: {2:.01%}".
+                format(epoch + 1, loss_valid, acc_valid))
+            print('---------------------------------------------------------')
+
         # Test the network after training
         # Accuracy
-        # feed_dict_test = {x: tests, y: tests_labels}
-        # loss_test, acc_test = sess.run([loss, accuracy], feed_dict=feed_dict_test)
-        # print('---------------------------------------------------------')
-        # print("Test loss: {0:.2f}, test accuracy: {1:.01%}".format(loss_test, acc_test))
-        # print('---------------------------------------------------------')
+        feed_dict_test = {x: tests, y: tests_labels}
+        loss_test, acc_test = sess.run([loss, accuracy], feed_dict=feed_dict_test)
+        print('---------------------------------------------------------')
+        print("Test loss: {0:.2f}, test accuracy: {1:.01%}".format(loss_test, acc_test))
+        print('---------------------------------------------------------')
 
         pred = sess.run(cls_prediction, feed_dict={x: tests})
         print(pred)
+        # pred = sess.run(correct_prediction, feed_dict={x: tests})
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
