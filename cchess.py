@@ -8,6 +8,28 @@ from pieces.king import King
 from pieces.pawn import Pawn
 import itertools
 
+piece_num = {
+    'p': -1,
+    'r': -2,
+    'n': -3,
+    'b': -4,
+    'q': -5,
+    'k': -6,
+    'b': -7,
+    'n': -8,
+    'r': -9,
+    'P': 1,
+    'R': 2,
+    'N': 3,
+    'B': 4,
+    'Q': 5,
+    'K': 6,
+    'B': 7,
+    'N': 8,
+    'R': 9,
+    ' ': 0
+}
+
 
 class Chess:
     def __init__(self):
@@ -460,10 +482,11 @@ class Chess:
         return res
 
     def numify(self):
-        res = ''
+        res = []
         for i, j in itertools.product(range(8), repeat=2):
             if self.chessboard[i][j] == '':
-                res += ' '
+                res.append(0)
             else:
-                res += self.chessboard[i][j]
-        return list(map(ord, res))
+                res.append(piece_num[self.chessboard[i][j]])
+                # res.append(1)
+        return res

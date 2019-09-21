@@ -4,53 +4,65 @@ import chess.pgn
 import io
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+from utils import *
+from ops import *
+
+tests = np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
+[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1]])
+
+tests_labels = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 
 promotions = {
+    '': '',
     'q': 'queen',
     'r': 'rook',
     'b': 'bishop',
-    'n': 'knight',
-    '': ''
+    'n': 'knight'
 }
 
 promotions_num = ['', 'q', 'r', 'b', 'n']
 
+move_dict = {
+    '46440': 0,
+    '41430': 1,
+    '67550': 2,
+    '10220': 3,
+    '57240': 4,
+    '50230': 5
+}
+
 train_games = []
 train_labels = []
 
-def main(args):
+def train(args):
     for arg in args:
         pgn = open(arg)
         game = chess.pgn.read_game(pgn)
         limit = 0
-        while game is not None and limit < 10:
+        while game is not None and limit < 1000:
             if not game.errors:
                 add_game(game)
             game = chess.pgn.read_game(pgn)
             limit += 1
 
-    # crear el modelo
-    model = keras.Sequential([
-        keras.layers.Dense(128, activation=tf.nn.relu),
-        keras.layers.Dense(10, activation=tf.nn.softmax)
-    ])
-
-    # compilar el modelo
-    model.compile(optimizer='adam',
-                  loss='sparse_categorical_crossentropy',
-                  metrics=['accuracy'])
-
-    # entrenar el modelo
-    model.fit(np.array(train_games), train_labels, epochs=5)
-
-    # guardar el modelo
-    model.save('deep_blue.h5')
+    # tf
+    data = np.array(train_games)
+    labels = np.array(train_labels)
+    cosacosa(data, labels)
 
 def add_game(game):
+    count = 0
     match = Match()
     board = game.board()
     for move in game.mainline_moves():
+        if count >= 6:
+            # modo_puercada = on
+            return
+
         the_board = match.board.numify()
         strmove = str(move)
         p = ''
@@ -65,13 +77,90 @@ def add_game(game):
         if error:
             return
 
-        if match.board.white_turn:
-            train_games.append(the_board)
-            train_labels.append(move_to_num(ox, oy, nx, ny, p))
+        count += 1
+        tp_move = f'{ox}{oy}{nx}{ny}{promotions_num.index(p)}'
+        temp = [0, 0, 0, 0, 0, 0]
+        temp[move_dict[tp_move]] = 1
+        train_games.append(the_board)
+        train_labels.append(temp)
 
+def cosacosa(x_train, y_train):
+    img_h = img_w = 8
+    img_size_flat = img_h * img_w
+    n_classes = 6
 
-def move_to_num(ox, oy, nx, ny, p):
-    return int(str(ox*10000 + oy*1000 + nx*100 + ny*10 + promotions_num.index(p)))
+    # Hyper-parameters
+    learning_rate = 0.01  # The optimization initial learning rate
+    epochs = 10  # Total number of training epochs
+    batch_size = 100  # Training batch size
+    display_freq = 100  # Frequency of displaying the training results
+
+    # Create the graph for the linear model
+    # Placeholders for inputs (x) and outputs(y)
+    x = tf.placeholder(tf.float32, shape=[None, img_size_flat], name='X')
+    y = tf.placeholder(tf.float32, shape=[None, n_classes], name='Y')
+
+    # create weight matrix initialized randomely from N~(0, 0.01)
+    W = weight_variable(shape=[img_size_flat, n_classes])
+
+    # create bias vector initialized as zero
+    b = bias_variable(shape=[n_classes])
+
+    output_logits = tf.matmul(x, W)
+    y_pred = tf.nn.softmax(output_logits)
+
+    # Model predictions
+    cls_prediction = tf.argmax(output_logits, axis=1, name='predictions')
+
+    # Define the loss function, optimizer, and accuracy
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=output_logits), name='loss')
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op').minimize(loss)
+    correct_prediction = tf.equal(tf.argmax(output_logits, 1), tf.argmax(y, 1), name='correct_pred')
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
+
+    # Creating the op for initializing all variables
+    init = tf.global_variables_initializer()
+
+    # Launch the graph (session)
+    with tf.Session() as sess:
+        sess.run(init)
+        global_step = 0
+        # Number of training iterations in each epoch
+        num_tr_iter = int(len(y_train) / batch_size)
+        for epoch in range(epochs):
+            print('Training epoch: {}'.format(epoch + 1))
+            x_train, y_train = randomize(x_train, y_train)
+            for iteration in range(num_tr_iter):
+                global_step += 1
+                start = iteration * batch_size
+                end = (iteration + 1) * batch_size
+                x_batch, y_batch = get_next_batch(x_train, y_train, start, end)
+
+                # Run optimization op (backprop)
+                feed_dict_batch = {x: x_batch, y: y_batch}
+                sess.run(optimizer, feed_dict=feed_dict_batch)
+
+                if iteration % display_freq == 0:
+                    # Calculate and display the batch loss and accuracy
+                    loss_batch, acc_batch = sess.run([loss, accuracy],
+                                                    feed_dict=feed_dict_batch)
+
+                    print("iter {0:3d}:\t Loss={1:.2f},\tTraining Accuracy={2:.01%}".
+                        format(iteration, loss_batch, acc_batch))
+
+        # Test the network after training
+        # Accuracy
+        # feed_dict_test = {x: tests, y: tests_labels}
+        # loss_test, acc_test = sess.run([loss, accuracy], feed_dict=feed_dict_test)
+        # print('---------------------------------------------------------')
+        # print("Test loss: {0:.2f}, test accuracy: {1:.01%}".format(loss_test, acc_test))
+        # print('---------------------------------------------------------')
+
+        pred = sess.run(cls_prediction, feed_dict={x: tests})
+        print(pred)
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    if len(sys.argv) == 1:
+        print('debe enviar nombre del archivo PGN como arg')
+    else:
+        train(sys.argv[1:])
