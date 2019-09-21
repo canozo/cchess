@@ -274,7 +274,14 @@ def on_mouse_release(xx, y, button, modifiers):
 @game_window.event
 def on_text(text):
     if text == 'm':
-        match.ai_move()
+        np_board = np.array([match.board.numify()])
+        [pred] = sess.run(cls_prediction, feed_dict={x: np_board})
+        ox, oy, dx, dy, p = list(dict_move[pred])
+        error = match.move(int(ox), int(oy), int(dx), int(dy), promotions_num[int(p)])
+        if error:
+            # tensorflow no puedo con el move, acudir a minimax
+            match.ai_move()
+        update_board()
     elif text == 'u':
         match.undo()
         update_board()
