@@ -23,5 +23,5 @@ pip install -r requirements.txt
 
 5. Conseguir PGNs de [PGN Mentor](https://www.pgnmentor.com/files.html) y entrenar el modelo
 ```
-python train.py GiuocoPiano.pgn Modern.pgn
+python main.py GiuocoPiano.pgn London2g6.pgn QueensIndian.pgn
 ```
