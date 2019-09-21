@@ -103,3 +103,7 @@ ENV/
 # PGNs
 *.zip
 *.pgn
+
+# Model
+checkpoint
+model.ckpt*
