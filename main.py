@@ -11,15 +11,6 @@ import tensorflow as tf
 from utils import *
 from ops import *
 
-tests = np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1],
-[1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1]])
-
-tests_labels = np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
-
 promotions = {
     '': '',
     'q': 'queen',
@@ -30,27 +21,21 @@ promotions = {
 
 promotions_num = ['', 'q', 'r', 'b', 'n']
 
-move_dict = {
-    '46440': 0,
-    '41430': 1,
-    '67550': 2,
-    '10220': 3,
-    '57240': 4,
-    '50230': 5
-}
-
-dict_move = ['46440', '41430', '67550', '10220', '57240', '50230']
+known_size = 0
+move_dict = {}
+dict_move = []
 
 train_games = []
 train_labels = []
 
 def add_game(game):
+    global known_size
     count = 0
     this_match = Match()
     board = game.board()
     for move in game.mainline_moves():
-        if count >= 6:
-            # modo_puercada = on
+        if count >= 8:
+            # solo tomar el opening del juego
             return
 
         the_board = this_match.board.numify()
@@ -69,7 +54,14 @@ def add_game(game):
 
         count += 1
         tp_move = f'{ox}{oy}{nx}{ny}{promotions_num.index(p)}'
-        temp = [0, 0, 0, 0, 0, 0]
+        if tp_move not in move_dict:
+            # agregar el mov al diccionario
+            print(f'unknown: {tp_move}')
+            move_dict[tp_move] = known_size
+            dict_move.append(tp_move)
+            known_size += 1
+
+        temp = [0 for _ in range(known_size)]
         temp[move_dict[tp_move]] = 1
         train_games.append(the_board)
         train_labels.append(temp)
@@ -84,25 +76,35 @@ for arg in args:
     pgn = open(arg)
     game = chess.pgn.read_game(pgn)
     limit = 0
-    while game is not None and limit < 100:
+    while game is not None and limit < 500:
         if not game.errors:
             add_game(game)
         game = chess.pgn.read_game(pgn)
         limit += 1
 
+# fill los demas arrays
+for label in train_labels[:-1]:
+    label += [0] * (known_size - len(label))
+
 # tf
 data = np.array(train_games)
 labels = np.array(train_labels)
 
-x_train, y_train, x_valid, y_valid, x_test, y_test = data[:900], labels[:900], data[100:], labels[100:], tests, tests_labels
+print(f'labels.shape: {labels.shape}')
+print(f'labels: {labels}')
+print(f'move_dict: {move_dict}')
+print(f'dict_move: {dict_move}')
+
+# x_train, y_train, x_valid, y_valid, x_test, y_test = data[:900], labels[:900], data[100:], labels[100:], tests, tests_labels
+x_train, y_train, x_valid, y_valid = data[:9000], labels[:9000], data[1000:], labels[1000:]
 
 img_h = img_w = 8
 img_size_flat = img_h * img_w
-n_classes = 6
+n_classes = known_size
 
 # Hyper-parameters
-learning_rate = 0.001  # The optimization initial learning rate
-epochs = 20  # Total number of training epochs
+learning_rate = 0.0001  # The optimization initial learning rate
+epochs = 50  # Total number of training epochs
 batch_size = 100  # Training batch size
 display_freq = 100  # Frequency of displaying the training results
 
@@ -125,15 +127,15 @@ cls_prediction = tf.argmax(output_logits, axis=1, name='predictions')
 
 # Define the loss function, optimizer, and accuracy
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=y, logits=output_logits), name='loss')
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op').minimize(loss)
+optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate, name='Adam-op').minimize(loss)
 correct_prediction = tf.equal(tf.argmax(output_logits, 1), tf.argmax(y, 1), name='correct_pred')
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32), name='accuracy')
 
 # Creating the op for initializing all variables
-init = tf.global_variables_initializer()
+init = tf.compat.v1.global_variables_initializer()
 
 # Launch the graph (session)
-sess = tf.Session()
+sess = tf.compat.v1.Session()
 sess.run(init)
 global_step = 0
 # Number of training iterations in each epoch
@@ -166,17 +168,6 @@ for epoch in range(epochs):
     print('Epoch: {0}, validation loss: {1:.2f}, validation accuracy: {2:.01%}'.
         format(epoch + 1, loss_valid, acc_valid))
     print('---------------------------------------------------------')
-
-# Test the network after training
-# Accuracy
-feed_dict_test = {x: tests, y: tests_labels}
-loss_test, acc_test = sess.run([loss, accuracy], feed_dict=feed_dict_test)
-print('---------------------------------------------------------')
-print("Test loss: {0:.2f}, test accuracy: {1:.01%}".format(loss_test, acc_test))
-print('---------------------------------------------------------')
-
-pred = sess.run(cls_prediction, feed_dict={x: tests})
-print(pred)
 
 game_window = pyglet.window.Window(height=512, width=512)
 message_label = pyglet.text.Label(font_name='Times New Roman',
